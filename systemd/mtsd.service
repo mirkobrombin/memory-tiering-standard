@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: MIT
+[Unit]
+Description=Memory Tiering Standard manager
+Documentation=man:mts.conf(5)
+DefaultDependencies=no
+After=local-fs.target
+Before=basic.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/libexec/mtsd apply /etc/mts/mts.conf

@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: MIT
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  zig:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install Zig 0.16.0
+        run: |
+          curl --fail --location --silent --show-error \
+            https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz \
+            --output /tmp/zig.tar.xz
+          echo '70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00  /tmp/zig.tar.xz' \
+            | sha256sum --check --strict
+          tar -xJf /tmp/zig.tar.xz -C /tmp
+          echo /tmp/zig-x86_64-linux-0.16.0 >> "$GITHUB_PATH"
+      - run: ./test.sh
+      - run: ./build.sh
