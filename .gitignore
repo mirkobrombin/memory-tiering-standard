@@ -1,0 +1,8 @@
+/zig-out/
+/.zig-cache/
+/zig-cache/
+/result/
+*.o
+*.ko
+*.cmd
+compile_commands.json
