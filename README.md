@@ -7,14 +7,18 @@ progress; userspace declares desired state and reports reproducible evidence.
 
 This private monorepo is the pre-upstream integration tree. It keeps the frozen
 v0.2 specification, Linux-facing ABI, Zig control tools and evaluation harness
-together until the M0 observe-mode gate passes.
+together while the first end-to-end implementation is measured.
 
 ## Status
 
-- Architecture: MTS v0.2 frozen.
-- M0: observe-mode implementation in progress.
-- M1: native NVMe object tier planned after M0 gates.
-- M2: PD1 admission and the complete evaluation runner follow M1.
+- Architecture: MTS v0.2 frozen, including the append-only admission ABI.
+- M0: observe collector, ISO16/Brier model, MRC and executable gate complete.
+- M1: native file/NVMe object tier and `SWP_MTS` reclaim/fork/zap/fault path
+  compile-verified against Linux 7.1.3.
+- M2: four-resource cgroup admission, PD1 reference controller, provider-loss
+  transitions, normalized telemetry and machine-checkable gates implemented.
+- Hardware acceptance: not claimed; the normative 128-core/NVMe trials have
+  not run in this workspace.
 
 ## Layout
 
@@ -36,9 +40,9 @@ normal paths do not panic.
 ./test.sh
 ```
 
-The kernel patch series is intentionally separate from the Zig build. Apply it
-to the kernel release named by `eval/mts-eval-v0.2.yaml` and use the kernel's
-normal build and test process.
+The kernel patch series is intentionally separate from the Zig build. The seven
+patches apply in order to Linux 7.1.3 and build the complete `mm/built-in.a`.
+See `linux/README.md` for the supported first path and its explicit limits.
 
 ## Contribution rule
 
