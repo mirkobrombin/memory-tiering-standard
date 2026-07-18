@@ -1,0 +1,11 @@
+schema	workload	configuration	repetition	throughput	fault_p99_us	pressure_ratio	admitted	slo_violations	correctness_failures	integrity_failures	prediction_labels	prediction_brier_sum_q32	positive_labels	oracle_throughput	mrc_relative_half_width
+mts-eval-run/v0.2	redis-zipf	full-ram	1	100000	0	0	false	0	0	0	0	0	0	0	0
+mts-eval-run/v0.2	redis-zipf	full-ram	2	101000	0	0	false	0	0	0	0	0	0	0	0
+mts-eval-run/v0.2	redis-zipf	full-ram	3	99000	0	0	false	0	0	0	0	0	0	0	0
+mts-eval-run/v0.2	redis-zipf	full-ram	4	100500	0	0	false	0	0	0	0	0	0	0	0
+mts-eval-run/v0.2	redis-zipf	full-ram	5	99500	0	0	false	0	0	0	0	0	0	0	0
+mts-eval-run/v0.2	redis-zipf	mts-observe	1	99700	0	0	false	0	0	0	10000	4294967296000	5000	0	0
+mts-eval-run/v0.2	redis-zipf	mts-observe	2	100697	0	0	false	0	0	0	10000	4294967296000	5000	0	0
+mts-eval-run/v0.2	redis-zipf	mts-observe	3	98703	0	0	false	0	0	0	10000	4294967296000	5000	0	0
+mts-eval-run/v0.2	redis-zipf	mts-observe	4	100198.5	0	0	false	0	0	0	10000	4294967296000	5000	0	0
+mts-eval-run/v0.2	redis-zipf	mts-observe	5	99201.5	0	0	false	0	0	0	10000	4294967296000	5000	0	0

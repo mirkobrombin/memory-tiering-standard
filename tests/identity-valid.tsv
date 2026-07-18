@@ -1,0 +1,11 @@
+schema	key	value
+mts-eval-identity/v0.2	manifest_sha256	859063d710f6497ed0e8fa228406118fa705cab1e24485dea19c3b00a3e51a66
+mts-eval-identity/v0.2	kernel_build_id	fixture-not-hardware
+mts-eval-identity/v0.2	firmware_versions	fixture-not-hardware
+mts-eval-identity/v0.2	cpu_topology	fixture-not-hardware
+mts-eval-identity/v0.2	numa_topology	fixture-not-hardware
+mts-eval-identity/v0.2	nvme_model_and_firmware	fixture-not-hardware
+mts-eval-identity/v0.2	compiler_version	zig-0.16.0
+mts-eval-identity/v0.2	source_digests	fixture-not-hardware
+mts-eval-identity/v0.2	sysctl_diff	none
+mts-eval-identity/v0.2	module_parameters	none

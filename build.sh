@@ -13,3 +13,4 @@ mkdir -p zig-out/bin
 "$ZIG" build-exe src/mtsctl.zig -O ReleaseSafe -femit-bin=zig-out/bin/mtsctl
 "$ZIG" build-exe src/mtsd.zig -O ReleaseSafe -femit-bin=zig-out/bin/mtsd
 "$ZIG" build-exe src/mts-generator.zig -O ReleaseSafe -femit-bin=zig-out/bin/mts-generator
+"$ZIG" build-exe src/mts-eval.zig -O ReleaseSafe -femit-bin=zig-out/bin/mts-eval
