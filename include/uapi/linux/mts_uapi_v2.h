@@ -8,6 +8,7 @@
 #define MTS_UAPI_VERSION 2U
 #define MTS_UUID_BYTES 16U
 #define MTS_HISTOGRAM_BUCKETS 32U
+#define MTS_MAX_DOMAIN_TIERS 8U
 #define MTS_TIER_SLOT_DRAM 0U
 #define MTS_TIER_SLOT_NONE 255U
 
@@ -142,6 +143,31 @@ struct mts_histogram_v2 {
 	__u64 samples;
 };
 
+struct mts_tier_reservation_v2 {
+	__s32 tier_fd;
+	__u32 reserved0;
+	__u64 capacity_bytes;
+	__u64 read_bandwidth_bytes_s;
+	__u64 write_bandwidth_bytes_s;
+	__u32 queue_slots;
+	__u32 reserved1;
+};
+
+struct mts_admit_domain_v2 {
+	__u16 version;
+	__u16 size;
+	__u32 flags;
+	__s32 cgroup_fd;
+	__s32 domain_fd;
+	__u64 fault_service_p99_ns;
+	__u64 reuse_horizon_us;
+	__u64 reservations_ptr;
+	__u32 reservation_count;
+	__u32 status;
+	__u64 stable_cgroup_id;
+	__u64 reserved[6];
+};
+
 /* Inclusive upper bounds in ns. Instantiate this initializer in userspace. */
 #define MTS_HISTOGRAM_UPPER_NS_V2_INIT { \
 	1000ULL, 2000ULL, 4000ULL, 8000ULL, \
@@ -159,5 +185,7 @@ struct mts_histogram_v2 {
 	_IOWR(MTS_IOC_MAGIC, 0x01, struct mts_register_tier_v2)
 #define MTS_IOC_UNREGISTER_TIER _IOW(MTS_IOC_MAGIC, 0x02, __u8[MTS_UUID_BYTES])
 #define MTS_IOC_QUERY_ATTR _IOWR(MTS_IOC_MAGIC, 0x03, struct mts_query_attr_v2)
+#define MTS_IOC_ADMIT_DOMAIN \
+	_IOWR(MTS_IOC_MAGIC, 0x04, struct mts_admit_domain_v2)
 
 #endif /* _UAPI_LINUX_MTS_UAPI_V2_H */

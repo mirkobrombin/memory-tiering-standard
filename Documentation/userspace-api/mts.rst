@@ -52,6 +52,10 @@ one of ``compressed-memory``, ``persistent-local-memory``, ``cxl-memory``,
 one of ``persistent`` or ``fd-scoped``. Capability keys mirror
 ``mts_tier_desc_v2`` with their UAPI field names converted to UpperCamelCase.
 Omitted capability values are unknown, never zero-cost.
+Enforce mode requires ``ReadLatencyP50NSec``, ``ReadLatencyP99NSec``,
+``WriteLatencyP50NSec``, ``WriteLatencyP99NSec``,
+``ReadBandwidthBytesPerSec``, ``WriteBandwidthBytesPerSec``,
+``MaxBatchPages`` and ``MaxInflightBatches``. Observe mode may learn them.
 
 ``[Domain]`` keys
 -----------------
@@ -60,6 +64,19 @@ Omitted capability values are unknown, never zero-cost.
 enforce mode. ``ReuseHorizonUSec`` defaults to 1000000. ``Predictor`` defaults
 to ``iso16``. ``Controller`` defaults to ``pd1``. Tier names must resolve after
 all files are merged.
+The optional bootstrap reservation keys are ``ReserveCapacityBytes``,
+``ReserveReadBandwidthBytesPerSec``, ``ReserveWriteBandwidthBytesPerSec`` and
+``ReserveQueueSlots``. The v0.2 reference daemon requires all four in enforce
+mode and the kernel applies the normative 20 percent admission headroom.
+
+Domain admission ABI
+====================
+
+``MTS_IOC_ADMIT_DOMAIN`` consumes a cgroup v2 directory fd and one
+``mts_tier_reservation_v2`` per non-DRAM tier. Admission is atomic across the
+set. Success returns a ``domain_fd`` and ``MTS_SLO_ADMITTED``; closing that fd
+releases all four non-preemptible reservations. A provider loss changes the
+live domain to ``MTS_SLO_AT_RISK`` before emitting ``mts:slo_transition``.
 
 Provider loss
 =============

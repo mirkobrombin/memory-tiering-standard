@@ -15,6 +15,15 @@ pub const Tier = struct {
     lifetime: ?Lifetime = null,
     capacity_bytes: u64 = 0,
     seen: u8 = 0,
+    capability_seen: u8 = 0,
+    read_latency_p50_ns: u64 = 0,
+    read_latency_p99_ns: u64 = 0,
+    write_latency_p50_ns: u64 = 0,
+    write_latency_p99_ns: u64 = 0,
+    read_bandwidth_bytes_s: u64 = 0,
+    write_bandwidth_bytes_s: u64 = 0,
+    max_batch_pages: u32 = 0,
+    max_inflight_batches: u32 = 0,
 };
 
 pub const Domain = struct {
@@ -25,7 +34,11 @@ pub const Domain = struct {
     reuse_horizon_us: u64 = 1_000_000,
     predictor: []const u8 = "iso16",
     controller: []const u8 = "pd1",
-    seen: u8 = 0,
+    seen: u16 = 0,
+    reserve_capacity_bytes: u64 = 0,
+    reserve_read_bandwidth_bytes_s: u64 = 0,
+    reserve_write_bandwidth_bytes_s: u64 = 0,
+    reserve_queue_slots: u32 = 0,
 };
 
 pub const Config = struct {
@@ -57,6 +70,7 @@ pub const Reason = enum {
     invalid_value,
     missing_required_key,
     unresolved_tier,
+    duplicate_tier_uuid,
     limit_exceeded,
 };
 
@@ -103,11 +117,19 @@ pub fn parse(input: []const u8) ParseResult {
 
     if (config.version == null or config.version.? != 2)
         return failure(line_number, "Version", .missing_required_key);
-    for (config.tiers[0..config.tier_count]) |tier| {
+    for (config.tiers[0..config.tier_count], 0..) |tier, index| {
         if (tier.seen != 0x1f) return failure(line_number, tier.name, .missing_required_key);
+        if (config.mode == .enforce and tier.capability_seen != 0xff)
+            return failure(line_number, tier.name, .missing_required_key);
+        for (config.tiers[0..index]) |earlier| {
+            if (std.mem.eql(u8, tier.uuid, earlier.uuid))
+                return failure(line_number, tier.uuid, .duplicate_tier_uuid);
+        }
     }
     for (config.domains[0..config.domain_count]) |domain| {
-        if ((domain.seen & 0x03) != 0x03 or (domain.mode == .enforce and domain.fault_service_p99_us == null))
+        if ((domain.seen & 0x03) != 0x03 or
+            (domain.mode == .enforce and
+                (domain.fault_service_p99_us == null or domain.seen & 0x3c0 != 0x3c0)))
             return failure(line_number, domain.path, .missing_required_key);
         var names = std.mem.splitScalar(u8, domain.tiers, ',');
         while (names.next()) |raw_name| {
@@ -198,6 +220,30 @@ fn assignTier(tier: *Tier, key: []const u8, value: []const u8, line: usize) ?Dia
         if (!mark(&tier.seen, 0x10)) return duplicate(line, key);
         tier.capacity_bytes = std.fmt.parseInt(u64, value, 10) catch return invalid(line, key);
         if (tier.capacity_bytes == 0) return invalid(line, key);
+    } else if (std.mem.eql(u8, key, "ReadLatencyP50NSec")) {
+        if (!mark(&tier.capability_seen, 0x01)) return duplicate(line, key);
+        tier.read_latency_p50_ns = parsePositive(u64, value) orelse return invalid(line, key);
+    } else if (std.mem.eql(u8, key, "ReadLatencyP99NSec")) {
+        if (!mark(&tier.capability_seen, 0x02)) return duplicate(line, key);
+        tier.read_latency_p99_ns = parsePositive(u64, value) orelse return invalid(line, key);
+    } else if (std.mem.eql(u8, key, "WriteLatencyP50NSec")) {
+        if (!mark(&tier.capability_seen, 0x04)) return duplicate(line, key);
+        tier.write_latency_p50_ns = parsePositive(u64, value) orelse return invalid(line, key);
+    } else if (std.mem.eql(u8, key, "WriteLatencyP99NSec")) {
+        if (!mark(&tier.capability_seen, 0x08)) return duplicate(line, key);
+        tier.write_latency_p99_ns = parsePositive(u64, value) orelse return invalid(line, key);
+    } else if (std.mem.eql(u8, key, "ReadBandwidthBytesPerSec")) {
+        if (!mark(&tier.capability_seen, 0x10)) return duplicate(line, key);
+        tier.read_bandwidth_bytes_s = parsePositive(u64, value) orelse return invalid(line, key);
+    } else if (std.mem.eql(u8, key, "WriteBandwidthBytesPerSec")) {
+        if (!mark(&tier.capability_seen, 0x20)) return duplicate(line, key);
+        tier.write_bandwidth_bytes_s = parsePositive(u64, value) orelse return invalid(line, key);
+    } else if (std.mem.eql(u8, key, "MaxBatchPages")) {
+        if (!mark(&tier.capability_seen, 0x40)) return duplicate(line, key);
+        tier.max_batch_pages = parsePositive(u32, value) orelse return invalid(line, key);
+    } else if (std.mem.eql(u8, key, "MaxInflightBatches")) {
+        if (!mark(&tier.capability_seen, 0x80)) return duplicate(line, key);
+        tier.max_inflight_batches = parsePositive(u32, value) orelse return invalid(line, key);
     } else return unknown(line, key);
     return null;
 }
@@ -226,6 +272,18 @@ fn assignDomain(domain: *Domain, key: []const u8, value: []const u8, line: usize
         if (!mark(&domain.seen, 0x20)) return duplicate(line, key);
         if (!std.mem.eql(u8, value, "pd1")) return invalid(line, key);
         domain.controller = value;
+    } else if (std.mem.eql(u8, key, "ReserveCapacityBytes")) {
+        if (!mark(&domain.seen, 0x40)) return duplicate(line, key);
+        domain.reserve_capacity_bytes = parsePositive(u64, value) orelse return invalid(line, key);
+    } else if (std.mem.eql(u8, key, "ReserveReadBandwidthBytesPerSec")) {
+        if (!mark(&domain.seen, 0x80)) return duplicate(line, key);
+        domain.reserve_read_bandwidth_bytes_s = parsePositive(u64, value) orelse return invalid(line, key);
+    } else if (std.mem.eql(u8, key, "ReserveWriteBandwidthBytesPerSec")) {
+        if (!mark(&domain.seen, 0x100)) return duplicate(line, key);
+        domain.reserve_write_bandwidth_bytes_s = parsePositive(u64, value) orelse return invalid(line, key);
+    } else if (std.mem.eql(u8, key, "ReserveQueueSlots")) {
+        if (!mark(&domain.seen, 0x200)) return duplicate(line, key);
+        domain.reserve_queue_slots = parsePositive(u32, value) orelse return invalid(line, key);
     } else return unknown(line, key);
     return null;
 }
@@ -263,10 +321,15 @@ fn tierExists(config: Config, name: []const u8) bool {
     return false;
 }
 
-fn mark(seen: *u8, bit: u8) bool {
+fn mark(seen: anytype, bit: @TypeOf(seen.*)) bool {
     if (seen.* & bit != 0) return false;
     seen.* |= bit;
     return true;
+}
+
+fn parsePositive(comptime T: type, value: []const u8) ?T {
+    const parsed = std.fmt.parseInt(T, value, 10) catch return null;
+    return if (parsed == 0) null else parsed;
 }
 
 fn failure(line: usize, key: []const u8, reason: Reason) ParseResult {
@@ -321,5 +384,65 @@ test "enforce requires an explicit fault SLO" {
     switch (result) {
         .config => return error.ExpectedDiagnostic,
         .diagnostic => |diag| try std.testing.expectEqual(Reason.missing_required_key, diag.reason),
+    }
+}
+
+test "enforce requires measured capabilities and a complete reservation" {
+    const text =
+        \\[MTS]
+        \\Version=2
+        \\Mode=enforce
+        \\[Tier "nvme"]
+        \\UUID=018f3f28-7ee0-7dd2-a400-8f847e14c001
+        \\Kind=local-storage
+        \\Provider=/dev/nvme0n1
+        \\Flags=fd-scoped
+        \\CapacityBytes=1099511627776
+        \\ReadLatencyP50NSec=80000
+        \\ReadLatencyP99NSec=180000
+        \\WriteLatencyP50NSec=90000
+        \\WriteLatencyP99NSec=190000
+        \\ReadBandwidthBytesPerSec=7000000000
+        \\WriteBandwidthBytesPerSec=5000000000
+        \\MaxBatchPages=128
+        \\MaxInflightBatches=64
+        \\[Domain "/redis"]
+        \\Mode=enforce
+        \\Tiers=dram,nvme
+        \\FaultServiceP99USec=200
+        \\ReserveCapacityBytes=68719476736
+        \\ReserveReadBandwidthBytesPerSec=1000000000
+        \\ReserveWriteBandwidthBytesPerSec=500000000
+        \\ReserveQueueSlots=8
+    ;
+    switch (parse(text)) {
+        .config => |parsed| {
+            try std.testing.expectEqual(@as(u8, 0xff), parsed.tiers[0].capability_seen);
+            try std.testing.expectEqual(@as(u16, 0x3c7), parsed.domains[0].seen);
+        },
+        .diagnostic => return error.UnexpectedDiagnostic,
+    }
+}
+
+test "duplicate tier UUID rejects the complete reload" {
+    const text =
+        \\[MTS]
+        \\Version=2
+        \\[Tier "a"]
+        \\UUID=018f3f28-7ee0-7dd2-a400-8f847e14c001
+        \\Kind=local-storage
+        \\Provider=/dev/a
+        \\Flags=persistent
+        \\CapacityBytes=4096
+        \\[Tier "b"]
+        \\UUID=018f3f28-7ee0-7dd2-a400-8f847e14c001
+        \\Kind=local-storage
+        \\Provider=/dev/b
+        \\Flags=persistent
+        \\CapacityBytes=4096
+    ;
+    switch (parse(text)) {
+        .config => return error.ExpectedDiagnostic,
+        .diagnostic => |diag| try std.testing.expectEqual(Reason.duplicate_tier_uuid, diag.reason),
     }
 }

@@ -16,4 +16,9 @@ export ZIG_LOCAL_CACHE_DIR="${ZIG_LOCAL_CACHE_DIR:-$PWD/.zig-cache/local}"
 "$ZIG" test src/telemetry.zig
 "$ZIG" test src/engine.zig
 "$ZIG" test src/linux_uapi.zig
+"$ZIG" test src/workload.zig
 "$ZIG" test tests/uapi_layout.zig
+mkdir -p .zig-cache/test-bin
+"${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Iinclude/uapi \
+  tests/uapi_abi.c -o .zig-cache/test-bin/uapi-abi
+.zig-cache/test-bin/uapi-abi

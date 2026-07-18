@@ -16,9 +16,9 @@ fn writeUnit(io: std.Io, output_dir: []const u8) !void {
         \\Before=basic.target
         \\
         \\[Service]
-        \\Type=oneshot
-        \\RemainAfterExit=yes
-        \\ExecStart=/usr/libexec/mtsd apply /etc/mts/mts.conf
+        \\Type=simple
+        \\ExecStart=/usr/libexec/mtsd run /etc/mts/mts.conf
+        \\Restart=on-failure
         \\
         \\[Install]
         \\WantedBy=basic.target
