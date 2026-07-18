@@ -13,4 +13,7 @@ export ZIG_LOCAL_CACHE_DIR="${ZIG_LOCAL_CACHE_DIR:-$PWD/.zig-cache/local}"
 "$ZIG" test src/mrc.zig
 "$ZIG" test src/object_table.zig
 "$ZIG" test src/pd1.zig
+"$ZIG" test src/telemetry.zig
+"$ZIG" test src/engine.zig
+"$ZIG" test src/linux_uapi.zig
 "$ZIG" test tests/uapi_layout.zig
