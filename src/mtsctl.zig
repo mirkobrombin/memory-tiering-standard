@@ -6,6 +6,7 @@ const feasibility = @import("feasibility.zig");
 fn usage(stderr: *std.Io.Writer) !void {
     try stderr.writeAll(
         "usage: mtsctl validate <mts.conf>\n" ++
+            "       mtsctl apply <mts.conf>\n" ++
             "       mtsctl feasibility <compute_s> <read_B> <write_B> <io_count> " ++
             "<read_Bps> <write_Bps> <recover_p50_s> <qd> <critical_s> <work> <full_ram_q>\n",
     );
@@ -32,6 +33,15 @@ pub fn main(init: std.process.Init) !void {
             return error.InvalidArguments;
         }
         return command.validate(init.io, allocator, args[2], stdout, stderr);
+    }
+    if (std.mem.eql(u8, args[1], "apply")) {
+        if (args.len != 3) {
+            try usage(stderr);
+            return error.InvalidArguments;
+        }
+        const loaded = try command.loadAndValidate(init.io, allocator, args[2], stderr);
+        defer loaded.deinit();
+        return command.applyConfig(init.io, allocator, loaded, false, stdout, stderr);
     }
     if (std.mem.eql(u8, args[1], "feasibility")) {
         if (args.len != 13) {
