@@ -8,7 +8,6 @@ silent data loss or an unbounded stall. Keep changes small, explicit and tested.
 ```sh
 ./test.sh
 git diff --check
-git commit --signoff
 ```
 
 - Preserve the v0.2 invariants in `spec/MTS-v0.2.md`.
@@ -18,5 +17,3 @@ git commit --signoff
 - Comments explain why; tests name the invariant they protect.
 - Commit subjects use `component: outcome`, followed by a short body describing
   the reason and the evidence.
-
-By contributing, you certify the Developer Certificate of Origin in `DCO`.
