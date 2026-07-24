@@ -81,7 +81,7 @@ index 9274804..350b6fc 100644
  
  struct mts_domain_tier {
 @@ -90,6 +95,7 @@ static LIST_HEAD(mts_domains);
- static DEFINE_XARRAY(mts_pte_objects);
+ static DEFINE_XARRAY_ALLOC1(mts_pte_objects);
  static DEFINE_XARRAY(mts_prepared_pages);
  static DEFINE_MUTEX(mts_pte_lock);
 +static atomic64_t mts_hysteresis_bypass = ATOMIC64_INIT(0);

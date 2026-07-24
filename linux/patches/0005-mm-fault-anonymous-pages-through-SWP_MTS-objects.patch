@@ -323,7 +323,7 @@ index 6c8e93a..9274804 100644
  static DEFINE_IDA(mts_tier_ids);
  static DEFINE_MUTEX(mts_registry_lock);
  static LIST_HEAD(mts_domains);
-+static DEFINE_XARRAY(mts_pte_objects);
++static DEFINE_XARRAY_ALLOC1(mts_pte_objects);
 +static DEFINE_XARRAY(mts_prepared_pages);
 +static DEFINE_MUTEX(mts_pte_lock);
  
@@ -463,12 +463,12 @@ index 6c8e93a..9274804 100644
 +
 +	mutex_lock(&mts_pte_lock);
 +	err = xa_alloc(&mts_pte_objects, &cookie, pte_object,
-+		       XA_LIMIT(1, U32_MAX), GFP_KERNEL);
++		       XA_LIMIT(1, U32_MAX), GFP_NOWAIT);
 +	if (err)
 +		goto unlock_put_object;
 +	pte_object->cookie = cookie;
 +	pfn = folio_pfn(folio);
-+	err = xa_insert(&mts_prepared_pages, pfn, pte_object, GFP_KERNEL);
++	err = xa_insert(&mts_prepared_pages, pfn, pte_object, GFP_NOWAIT);
 +	if (err) {
 +		xa_erase(&mts_pte_objects, cookie);
 +		goto unlock_put_object;
