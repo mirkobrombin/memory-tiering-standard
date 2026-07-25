@@ -1,0 +1,28 @@
+name: release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Zig 0.16.0
+        run: |
+          curl --fail --location --silent --show-error \
+            https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz \
+            --output /tmp/zig.tar.xz
+          echo '70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00  /tmp/zig.tar.xz' | sha256sum -c -
+          tar -xJf /tmp/zig.tar.xz -C /tmp
+          echo /tmp/zig-x86_64-linux-0.16.0 >> "$GITHUB_PATH"
+      - name: Build
+        run: |
+          mkdir -p dist
+          zig build-exe src/mtsd.zig   -O ReleaseSafe -target x86_64-linux-musl -femit-bin=dist/mtsd
+          zig build-exe src/mtsctl.zig -O ReleaseSafe -target x86_64-linux-musl -femit-bin=dist/mtsctl
+          tar -C dist -czf "mts-${GITHUB_REF_NAME}-x86_64.tar.gz" mtsd mtsctl
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: "*.tar.gz"
