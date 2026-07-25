@@ -10,7 +10,6 @@ silent data loss or an unbounded stall. Keep changes small, explicit and tested.
 git diff --check
 ```
 
-- Preserve the v0.2 invariants in `spec/MTS-v0.2.md`.
 - UAPI and tracepoint schemas are append-only until v0.3.
 - Never add a synchronous userspace dependency to reclaim or fault handling.
 - Reject partial configuration reloads.
