@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 const std = @import("std");
 const config = @import("config.zig");
-const uapi = @import("linux_uapi.zig");
+const uapi = @import("backend.zig");
 
 pub const max_config_bytes = 1024 * 1024;
 
@@ -64,7 +64,7 @@ pub fn applyConfig(io: std.Io, allocator: std.mem.Allocator, loaded: LoadedConfi
             try stderr.print("tier {s}: provider {s}: {s}\n", .{ tier.name, tier.provider, @errorName(err) });
             return error.ProviderUnavailable;
         };
-        const mtsfd = uapi.registerTier(device.handle, provider.handle, tier) catch |err| {
+        const mtsfd = uapi.registerTier(io, device.handle, provider.handle, tier) catch |err| {
             provider.close(io);
             try stderr.print("tier {s}: registration failed: {s}\n", .{ tier.name, @errorName(err) });
             return err;
@@ -102,6 +102,7 @@ pub fn applyConfig(io: std.Io, allocator: std.mem.Allocator, loaded: LoadedConfi
             return error.CgroupUnavailable;
         };
         const domain_fd = uapi.admitDomain(
+            io,
             device.handle,
             cgroup.handle,
             domain_tier_fds[0..domain_tier_count],

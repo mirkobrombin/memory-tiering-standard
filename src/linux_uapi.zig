@@ -103,7 +103,12 @@ pub fn descriptor(tier: config.Tier) !TierDesc {
     };
 }
 
-pub fn registerTier(control_fd: i32, provider_fd: i32, tier: config.Tier) !i32 {
+pub fn registerTier(io: std.Io, control_fd: i32, provider_fd: i32, tier: config.Tier) !i32 {
+    // The kernel transport reaches the tier through an already open device, so
+    // it needs no file access of its own. It takes io because the contract
+    // does, and a transport that does touch the filesystem must not have to
+    // reach around the abstraction the rest of the tree uses.
+    _ = io;
     var request = RegisterTier{
         .version = version,
         .size = @sizeOf(RegisterTier),
@@ -119,7 +124,8 @@ pub fn registerTier(control_fd: i32, provider_fd: i32, tier: config.Tier) !i32 {
     return request.mtsfd;
 }
 
-pub fn admitDomain(control_fd: i32, cgroup_fd: i32, tier_fds: []const i32, domain: config.Domain) !i32 {
+pub fn admitDomain(io: std.Io, control_fd: i32, cgroup_fd: i32, tier_fds: []const i32, domain: config.Domain) !i32 {
+    _ = io;
     if (tier_fds.len == 0 or tier_fds.len > 8) return error.InvalidReservationCount;
     var reservations: [8]TierReservation = undefined;
     for (tier_fds, 0..) |tier_fd, index| reservations[index] = .{

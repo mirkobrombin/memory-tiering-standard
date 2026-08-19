@@ -16,6 +16,7 @@ export ZIG_LOCAL_CACHE_DIR="${ZIG_LOCAL_CACHE_DIR:-$PWD/.zig-cache/local}"
 "$ZIG" test src/telemetry.zig
 "$ZIG" test src/engine.zig
 "$ZIG" test src/linux_uapi.zig
+"$ZIG" test src/damon_backend.zig
 "$ZIG" test src/workload.zig
 "$ZIG" test tests/uapi_layout.zig
 mkdir -p .zig-cache/test-bin
