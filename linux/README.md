@@ -14,6 +14,10 @@ Patch 6 feeds calibrated ISO16 probability into PD1 tier ranking and updates
 the four projected-dual prices when reservations change.
 Patch 7 rejects duplicate UUIDs, retires exhausted generation slots and clones
 sticky-frozen objects on fork instead of losing exact reference accounting.
+Patch 8 lets a domain admitted for a cgroup cover every cgroup below it and
+converts the PTEs of a folio after it has been unmapped for migration.
+Patch 9 allocates object slots from a free mark in the XArray, so demoting n
+pages no longer costs O(n^2).
 
 Apply and build:
 
