@@ -2,13 +2,16 @@
 const std = @import("std");
 const command = @import("command.zig");
 const feasibility = @import("feasibility.zig");
+const calibrate = @import("calibrate.zig");
+const config = @import("config.zig");
 
 fn usage(stderr: *std.Io.Writer) !void {
     try stderr.writeAll(
         "usage: mtsctl validate <mts.conf>\n" ++
             "       mtsctl apply <mts.conf>\n" ++
             "       mtsctl feasibility <compute_s> <read_B> <write_B> <io_count> " ++
-            "<read_Bps> <write_Bps> <recover_p50_s> <qd> <critical_s> <work> <full_ram_q>\n",
+            "<read_Bps> <write_Bps> <recover_p50_s> <qd> <critical_s> <work> <full_ram_q>\n" ++
+            "       mtsctl calibrate <mts.conf> <tier> <out.conf>\n",
     );
 }
 
@@ -68,6 +71,48 @@ pub fn main(init: std.process.Init) !void {
         );
         return;
     }
+    if (std.mem.eql(u8, args[1], "calibrate")) {
+        if (args.len != 5) {
+            try usage(stderr);
+            return error.InvalidArguments;
+        }
+        return runCalibrate(init.io, allocator, args[2], args[3], args[4], stdout, stderr);
+    }
     try usage(stderr);
     return error.InvalidArguments;
+}
+
+fn runCalibrate(
+    io: std.Io,
+    allocator: std.mem.Allocator,
+    in_path: []const u8,
+    tier: []const u8,
+    out_path: []const u8,
+    stdout: *std.Io.Writer,
+    stderr: *std.Io.Writer,
+) !void {
+    const input = try std.Io.Dir.cwd().readFileAlloc(io, in_path, allocator, .limited(command.max_config_bytes));
+    const provider = calibrate.providerOf(input, tier) orelse {
+        try stderr.print("{s}: tier \"{s}\" has no Provider\n", .{ in_path, tier });
+        return error.InvalidConfiguration;
+    };
+    const provider_z = try allocator.dupeZ(u8, provider);
+    const m = try calibrate.measure(allocator, provider_z);
+    const output = try calibrate.rewrite(allocator, input, tier, m);
+    switch (config.parse(output)) {
+        .config => {},
+        .diagnostic => |diag| {
+            try stderr.print("{s}:{d}: {s}: {s}\n", .{ out_path, diag.line, @tagName(diag.reason), diag.key });
+            return error.InvalidConfiguration;
+        },
+    }
+    try std.Io.Dir.cwd().writeFile(io, .{ .sub_path = out_path, .data = output });
+    try stdout.print(
+        "{s}: read p50={d}ns p99={d}ns write p50={d}ns p99={d}ns read={d}B/s write={d}B/s direct={}\n",
+        .{
+            tier,                      m.read_latency_p50_ns,  m.read_latency_p99_ns,
+            m.write_latency_p50_ns,    m.write_latency_p99_ns, m.read_bandwidth_bytes_s,
+            m.write_bandwidth_bytes_s, m.direct,
+        },
+    );
 }
