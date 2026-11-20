@@ -28,9 +28,13 @@ printf 'pub const Backend = enum { kernel, damon };\npub const backend: Backend 
   "$MTS_BACKEND" > "$options_dir/build_options.zig"
 backend_dep="--dep build_options"
 
+target_flag=""
+if [ -n "${MTS_TARGET:-}" ]; then
+  target_flag="-target $MTS_TARGET"
+fi
 mkdir -p zig-out/bin
-"$ZIG" build-exe $backend_dep -Mroot=src/mtsctl.zig "-Mbuild_options=$options_dir/build_options.zig" -O ReleaseSafe -femit-bin=zig-out/bin/mtsctl
-"$ZIG" build-exe $backend_dep -Mroot=src/mtsd.zig "-Mbuild_options=$options_dir/build_options.zig" -O ReleaseSafe -femit-bin=zig-out/bin/mtsd
-"$ZIG" build-exe $backend_dep -Mroot=src/mts-generator.zig "-Mbuild_options=$options_dir/build_options.zig" -O ReleaseSafe -femit-bin=zig-out/bin/mts-generator
-"$ZIG" build-exe $backend_dep -Mroot=src/mts-eval.zig "-Mbuild_options=$options_dir/build_options.zig" -O ReleaseSafe -femit-bin=zig-out/bin/mts-eval
-"$ZIG" build-exe $backend_dep -Mroot=src/mts-workload.zig "-Mbuild_options=$options_dir/build_options.zig" -O ReleaseSafe -femit-bin=zig-out/bin/mts-workload
+"$ZIG" build-exe $target_flag $backend_dep -Mroot=src/mtsctl.zig "-Mbuild_options=$options_dir/build_options.zig" -O ReleaseSafe -femit-bin=zig-out/bin/mtsctl
+"$ZIG" build-exe $target_flag $backend_dep -Mroot=src/mtsd.zig "-Mbuild_options=$options_dir/build_options.zig" -O ReleaseSafe -femit-bin=zig-out/bin/mtsd
+"$ZIG" build-exe $target_flag $backend_dep -Mroot=src/mts-generator.zig "-Mbuild_options=$options_dir/build_options.zig" -O ReleaseSafe -femit-bin=zig-out/bin/mts-generator
+"$ZIG" build-exe $target_flag $backend_dep -Mroot=src/mts-eval.zig "-Mbuild_options=$options_dir/build_options.zig" -O ReleaseSafe -femit-bin=zig-out/bin/mts-eval
+"$ZIG" build-exe $target_flag $backend_dep -Mroot=src/mts-workload.zig "-Mbuild_options=$options_dir/build_options.zig" -O ReleaseSafe -femit-bin=zig-out/bin/mts-workload
