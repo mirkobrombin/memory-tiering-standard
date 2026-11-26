@@ -19,6 +19,7 @@ export ZIG_LOCAL_CACHE_DIR="${ZIG_LOCAL_CACHE_DIR:-$PWD/.zig-cache/local}"
 "$ZIG" test src/damon_backend.zig
 "$ZIG" test src/workload.zig
 "$ZIG" test src/calibrate.zig
+"$ZIG" test src/admission.zig
 "$ZIG" test tests/uapi_layout.zig
 mkdir -p .zig-cache/test-bin
 "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Iinclude/uapi \

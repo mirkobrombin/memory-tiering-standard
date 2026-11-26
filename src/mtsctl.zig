@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 const std = @import("std");
+const admission = @import("admission.zig");
 const command = @import("command.zig");
 const feasibility = @import("feasibility.zig");
 const calibrate = @import("calibrate.zig");
@@ -98,13 +99,24 @@ fn runCalibrate(
     };
     const provider_z = try allocator.dupeZ(u8, provider);
     const m = try calibrate.measure(allocator, provider_z);
-    const output = try calibrate.rewrite(allocator, input, tier, m);
-    switch (config.parse(output)) {
-        .config => {},
-        .diagnostic => |diag| {
-            try stderr.print("{s}:{d}: {s}: {s}\n", .{ out_path, diag.line, @tagName(diag.reason), diag.key });
-            return error.InvalidConfiguration;
-        },
+    var output = try calibrate.rewrite(allocator, input, tier, m);
+    while (true) {
+        const cfg = switch (config.parse(output)) {
+            .config => |cfg| cfg,
+            .diagnostic => |diag| {
+                try stderr.print("{s}:{d}: {s}: {s}\n", .{ out_path, diag.line, @tagName(diag.reason), diag.key });
+                return error.InvalidConfiguration;
+            },
+        };
+        const shortfall = admission.check(&cfg) orelse break;
+        try stderr.print(
+            "domain {s}: needs {d} {s} of {s} on tier {s}, {d} available; observing it instead\n",
+            .{
+                shortfall.domain,             shortfall.requested, admission.unit(shortfall.resource),
+                @tagName(shortfall.resource), shortfall.tier,      shortfall.available,
+            },
+        );
+        output = try calibrate.observeDomain(allocator, output, shortfall.domain);
     }
     try std.Io.Dir.cwd().writeFile(io, .{ .sub_path = out_path, .data = output });
     try stdout.print(

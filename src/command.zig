@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 const std = @import("std");
+const admission = @import("admission.zig");
 const config = @import("config.zig");
 const uapi = @import("backend.zig");
 
@@ -40,6 +41,16 @@ pub fn validate(io: std.Io, allocator: std.mem.Allocator, path: []const u8, stdo
 
 pub fn applyConfig(io: std.Io, allocator: std.mem.Allocator, loaded: LoadedConfig, run: bool, stdout: *std.Io.Writer, stderr: *std.Io.Writer) !void {
     const apply_once = !run;
+    if (admission.check(&loaded.value)) |shortfall| {
+        try stderr.print(
+            "domain {s}: needs {d} {s} of {s} on tier {s}, {d} available\n",
+            .{
+                shortfall.domain,             shortfall.requested, admission.unit(shortfall.resource),
+                @tagName(shortfall.resource), shortfall.tier,      shortfall.available,
+            },
+        );
+        return error.ReservationExceedsTier;
+    }
     const device = std.Io.Dir.openFileAbsolute(io, "/dev/mts", .{ .mode = .read_write }) catch |err| {
         try stderr.print(
             "/dev/mts: {s}; refusing to pretend the configuration was applied\n",

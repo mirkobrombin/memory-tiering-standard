@@ -217,6 +217,41 @@ fn appendMissing(allocator: std.mem.Allocator, out: *std.ArrayList(u8), written:
     }
 }
 
+fn sectionDomain(line: []const u8) ?[]const u8 {
+    const trimmed = std.mem.trim(u8, line, " \t\r");
+    const prefix = "[Domain \"";
+    if (!std.mem.startsWith(u8, trimmed, prefix) or !std.mem.endsWith(u8, trimmed, "\"]")) return null;
+    return trimmed[prefix.len .. trimmed.len - 2];
+}
+
+pub fn observeDomain(allocator: std.mem.Allocator, input: []const u8, path: []const u8) ![]u8 {
+    var out: std.ArrayList(u8) = .empty;
+    errdefer out.deinit(allocator);
+    var in_domain = false;
+    var found = false;
+    var lines = std.mem.splitScalar(u8, input, '\n');
+    var first = true;
+    while (lines.next()) |line| {
+        if (std.mem.startsWith(u8, std.mem.trim(u8, line, " \t\r"), "[")) {
+            in_domain = if (sectionDomain(line)) |name| std.mem.eql(u8, name, path) else false;
+        }
+        if (!first) try out.append(allocator, '\n');
+        first = false;
+        if (in_domain) {
+            if (lineKey(line)) |key| {
+                if (std.mem.eql(u8, key, "Mode")) {
+                    try out.appendSlice(allocator, "Mode=observe");
+                    found = true;
+                    continue;
+                }
+            }
+        }
+        try out.appendSlice(allocator, line);
+    }
+    if (!found) return error.DomainNotFound;
+    return out.toOwnedSlice(allocator);
+}
+
 pub fn providerOf(input: []const u8, tier: []const u8) ?[]const u8 {
     var in_tier = false;
     var lines = std.mem.splitScalar(u8, input, '\n');
@@ -261,6 +296,14 @@ const sample_config =
     \\ReserveQueueSlots=4
     \\
 ;
+
+test "an infeasible domain is switched to observe" {
+    const output = try observeDomain(std.testing.allocator, sample_config, "/");
+    defer std.testing.allocator.free(output);
+    try std.testing.expect(std.mem.indexOf(u8, output, "[Domain \"/\"]\nMode=observe\n") != null);
+    try std.testing.expect(std.mem.indexOf(u8, output, "[MTS]\nVersion=2\nMode=enforce\n") != null);
+    try std.testing.expectError(error.DomainNotFound, observeDomain(std.testing.allocator, sample_config, "/user.slice"));
+}
 
 const sample_measurement = Measurement{
     .read_latency_p50_ns = 310000,
